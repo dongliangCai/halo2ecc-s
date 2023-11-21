@@ -105,4 +105,13 @@ impl<C: CurveAffine> EccChipScalarOps<C, C::ScalarExt> for NativeScalarEccContex
         res.reverse();
         res
     }
+
+    fn eval(
+        &mut self, 
+        values: &Vec<Self::AssignedScalar>, 
+        point: &Self::AssignedScalar, 
+        domain: &Vec<Self::AssignedScalar>
+    ) -> Self::AssignedScalar{
+        *point
+    }
 }

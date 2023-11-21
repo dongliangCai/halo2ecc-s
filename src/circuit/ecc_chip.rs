@@ -4,6 +4,7 @@ use halo2_proofs::arithmetic::Field;
 use halo2_proofs::arithmetic::FieldExt;
 use halo2_proofs::pairing::group::Curve;
 use halo2_proofs::pairing::group::Group;
+use halo2_proofs::poly::EvaluationDomain;
 use num_bigint::BigUint;
 
 use super::integer_chip::IntegerChipOps;
@@ -17,6 +18,14 @@ pub trait EccChipScalarOps<C: CurveAffine, N: FieldExt>: EccChipBaseOps<C, N> {
         &mut self,
         s: &Self::AssignedScalar,
     ) -> Vec<[AssignedCondition<N>; WINDOW_SIZE]>;
+
+    fn eval(
+        &mut self, 
+        values: &Vec<Self::AssignedScalar>, 
+        point: &Self::AssignedScalar, 
+        domain: &Vec<Self::AssignedScalar>
+    ) -> Self::AssignedScalar;
+
     // like pippenger
     fn msm_batch_on_group(
         &mut self,
@@ -198,10 +207,15 @@ pub trait EccChipScalarOps<C: CurveAffine, N: FieldExt>: EccChipBaseOps<C, N> {
     fn ecc_mul(&mut self, a: &AssignedPoint<C, N>, s: Self::AssignedScalar) -> AssignedPoint<C, N> {
         self.msm(&vec![a.clone()], &vec![s.clone()])
     }
+
 }
 
 pub trait EccBaseIntegerChipWrapper<W: BaseExt, N: FieldExt> {
     fn base_integer_chip(&mut self) -> &mut dyn IntegerChipOps<W, N>;
+}
+
+pub trait EccScalarIntegerChipWrapper<W: FieldExt, N: FieldExt>{
+    fn scalar_integer_chip(&mut self) -> &mut dyn IntegerChipOps<W, N>;
 }
 
 pub trait EccChipBaseOps<C: CurveAffine, N: FieldExt>:
