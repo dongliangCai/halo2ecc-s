@@ -8,6 +8,7 @@ use crate::utils::field_to_bn;
 use ark_std::{end_timer, start_timer};
 use halo2_proofs::pairing::bls12_381::{G1Affine, G1, Fr as Fb};
 use halo2_proofs::pairing::bn256::Fr;
+use halo2_proofs::pairing::group::ff::PrimeField;
 use halo2_proofs::poly::EvaluationDomain;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -40,9 +41,42 @@ fn test_bls12_381_polyeval_chip_over_bn256_fr() {
 
     let logn = (n as f32).log2() as u32;
 
-    let domain = EvaluationDomain::<Fb>::new(2, logn);
+    //let domain = EvaluationDomain::<Fb>::new(2, logn);
+    
 
-    let omega = domain.get_omega();    
+    let quotient_poly_degree = (2 - 1) as u64;
+
+    // n = 2^k
+    let domain_size = 1u64 << logn;    
+    let mut extended_k = logn;
+
+    while (1 << extended_k) < (domain_size * quotient_poly_degree) {
+        extended_k += 1;
+    }
+
+    let mut extended_omega = Fb::root_of_unity();
+
+    // Get extended_omega, the 2^{extended_k}'th root of unity
+    // The loop computes extended_omega = omega^{2 ^ (S - extended_k)}
+    // Notice that extended_omega ^ {2 ^ extended_k} = omega ^ {2^S} = 1.
+    for _ in extended_k..Fb::S {
+        extended_omega = extended_omega.square();
+    }
+    let extended_omega = extended_omega;
+    let mut extended_omega_inv = extended_omega; // Inversion computed later
+
+    // Get omega, the 2^{k}'th root of unity (i.e. n'th root of unity)
+    // The loop computes omega = extended_omega ^ {2 ^ (extended_k - k)}
+    //           = (omega^{2 ^ (S - extended_k)})  ^ {2 ^ (extended_k - k)}
+    //           = omega ^ {2 ^ (S - k)}.
+    // Notice that omega ^ {2^k} = omega ^ {2^S} = 1.
+
+    let mut omega = extended_omega;
+    for _ in logn..extended_k {
+        omega = omega.square();
+    }
+
+    //let omega = domain.get_omega();    
 
     let mut invs = Vec::with_capacity(4096);
 

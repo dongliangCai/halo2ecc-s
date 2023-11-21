@@ -14,6 +14,7 @@ use crate::context::GeneralScalarEccContext;
 use crate::pair;
 use crate::utils::field_to_bn;
 
+
 impl<C: CurveAffine, N: FieldExt> EccBaseIntegerChipWrapper<C::Base, N>
     for GeneralScalarEccContext<C, N>
 {
