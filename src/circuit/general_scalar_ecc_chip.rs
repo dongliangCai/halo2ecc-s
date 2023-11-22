@@ -106,7 +106,10 @@ impl<C: CurveAffine, N: FieldExt> EccChipScalarOps<C, N> for GeneralScalarEccCon
         let mut acc_i;
         let mut x_sub_w_i;
 
-        let mut x = self.scalar_integer_chip().int_mul(&one, point);
+        //let mut x = self.scalar_integer_chip().int_mul(&one, &one);
+
+        //init x_n
+        let mut x_n = self.scalar_integer_chip().assign_int_constant(C::Scalar::one()); 
 
         for i in 0..len {
 
@@ -120,10 +123,16 @@ impl<C: CurveAffine, N: FieldExt> EccChipScalarOps<C, N> for GeneralScalarEccCon
             
             acc = self.scalar_integer_chip().int_add(&acc, &acc_i);
 
-            x = self.scalar_integer_chip().int_mul(&x, point);            
+            //acc = self.scalar_integer_chip().int_mul(&acc, &one);
+
+            x_n = self.scalar_integer_chip().int_mul(&x_n, point);
+
+            //println!("debug inner acci: {:?}", acc_i);
+
+            println!("debug inner acc value_{}: {:?} \n", i, acc);            
         }
 
-        let x_n_sub_one = self.scalar_integer_chip().int_sub(&x, &one);
+        let x_n_sub_one = self.scalar_integer_chip().int_sub(&x_n, &one);
         
         let n = self.scalar_integer_chip().assign_int_constant(C::Scalar::from(len as u64));
 
@@ -133,6 +142,7 @@ impl<C: CurveAffine, N: FieldExt> EccChipScalarOps<C, N> for GeneralScalarEccCon
 
         let result = self.scalar_integer_chip().int_mul(&extract_entry, &acc);
 
+        //println!("debug result {:?}", result);
         result
     }
 

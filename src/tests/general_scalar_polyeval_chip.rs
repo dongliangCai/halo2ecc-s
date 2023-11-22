@@ -28,22 +28,11 @@ fn test_bls12_381_polyeval_chip_over_bn256_fr() {
 
     let x = random_bls12_381_fr();
 
-    // for _ in 0..50 {
-    //     let a = random_bls12_381_fr();
-    //     let b = random_bls12_381_fr();
-    //     let p = G1::generator() * a;
-    //     acc = acc + p * b;
-    //     points.push(p);
-    //     scalars.push(b);
-    // }
-
     let n = values.len(); 
 
     let logn = (n as f32).log2() as u32;
 
     //let domain = EvaluationDomain::<Fb>::new(2, logn);
-    
-
     let quotient_poly_degree = (2 - 1) as u64;
 
     // n = 2^k
@@ -63,7 +52,6 @@ fn test_bls12_381_polyeval_chip_over_bn256_fr() {
         extended_omega = extended_omega.square();
     }
     let extended_omega = extended_omega;
-    let mut extended_omega_inv = extended_omega; // Inversion computed later
 
     // Get omega, the 2^{k}'th root of unity (i.e. n'th root of unity)
     // The loop computes omega = extended_omega ^ {2 ^ (extended_k - k)}
@@ -76,34 +64,38 @@ fn test_bls12_381_polyeval_chip_over_bn256_fr() {
         omega = omega.square();
     }
 
-    //let omega = domain.get_omega();    
 
-    let mut invs = Vec::with_capacity(4096);
+    //let mut invs = Vec::with_capacity(4096);
 
     let mut evaldomain = Vec::with_capacity(4096);
 
-    let mut acc = Fb::from(0);
+    let mut acc = Fb::zero();
 
-    let mut omega_i = Fb::from(1);
+    let mut omega_i = Fb::one();
 
-    let mut x_n = Fb::from(1);
+    let mut x_n = Fb::one();
     
     for i in 0..n {
         evaldomain.push(omega_i);
 
-        let inv = (x - omega_i).invert().unwrap();
-        invs.push(inv);
+        let inv_i = (x - omega_i).invert().unwrap();
 
-        acc += (values[i]) * omega_i * inv;
+        //invs.push(inv);
+        let acc_i = (values[i]) * omega_i * inv_i;
+
+        acc += acc_i;
 
         omega_i = omega_i * omega;
 
         x_n = x_n * x;
-        //print!("outside acc value:{:?}", acc);
+
+        //println!("outside acci value{:?}",ctx.scalar_integer_ctx.assign_w(&field_to_bn(&acc_i)));
+        print!("outside acc value{}:{:?} \n", i, ctx.scalar_integer_ctx.assign_w(&field_to_bn(&acc)));
     }
 
     acc = (x_n - Fb::one()) * Fb::from(n as u64).invert().unwrap() * acc;
 
+    let res_expect = ctx.scalar_integer_ctx.assign_w(&field_to_bn(&acc));
 
     let timer = start_timer!(|| "setup");
 
@@ -117,15 +109,16 @@ fn test_bls12_381_polyeval_chip_over_bn256_fr() {
         .map(|x| ctx.scalar_integer_ctx.assign_w(&field_to_bn(&x)))
         .collect::<Vec<_>>(); 
 
-
-
     let x = ctx.scalar_integer_ctx.assign_w(&field_to_bn(&x));
+
 
     let res = ctx.eval(&values, &x, &evaldomain);
 
-    let res_expect = ctx.scalar_integer_ctx.assign_w(&field_to_bn(&acc));
+    print!("debug: res{:?} \n", res);
 
-    ctx.scalar_integer_ctx.is_int_equal(&res, &res_expect);
+    print!("debug: expect{:?} \n", res_expect);
+
+    ctx.scalar_integer_ctx.assert_int_equal(&res, &res_expect);
 
     end_timer!(timer);
 
